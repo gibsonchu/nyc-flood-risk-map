@@ -75,7 +75,7 @@ const $ = s => document.querySelector(s);
 
 /* ── state ────────────────────────────────────────────── */
 
-let META, ZIPS, HOODS, N = 0;
+let META, ZIPS, HOODS, N = 0, V = '';
 let POS, FLAGS, ATTR, COLORS, RADII;         // typed arrays over mapped buildings
 let SHOW, SHOW_COASTAL;                      // 1/0 masks for DataFilterExtension
 let GRID = null;                              // CSR spatial index for nearest-lookup
@@ -100,12 +100,13 @@ const detailCache = new Map(), bblCache = new Map();
     step(8, 'Loading flood models…');
     META = await fetch('data/meta.json').then(r => r.json());
     N = META.mapped;
+    V = META.build ? '?v=' + META.build : '';
 
     step(20, `Loading ${fmt(META.total)} buildings…`);
     const [buf, zips, hoods] = await Promise.all([
-      fetch('data/points.bin').then(r => r.arrayBuffer()),
-      fetch('data/zips.json').then(r => r.json()),
-      fetch('data/neighborhoods.json').then(r => r.json()),
+      fetch('data/points.bin' + V).then(r => r.arrayBuffer()),
+      fetch('data/zips.json' + V).then(r => r.json()),
+      fetch('data/neighborhoods.json' + V).then(r => r.json()),
     ]);
     ZIPS = zips; HOODS = hoods;
 
@@ -270,7 +271,7 @@ function buildMap() {
       map.setPaintProperty('water', 'fill-color', '#0B1A24');
     } catch (e) { /* style ids vary; not worth failing over */ }
 
-    const gj = await fetch('data/zips.geojson').then(r => r.json());
+    const gj = await fetch('data/zips.geojson' + V).then(r => r.json());
     gj.features.forEach(ft => {
       const z = ZIPS[ft.properties.z];
       ft.properties.v = z ? z[SCEN[scenario].agg] : 0;
@@ -418,7 +419,7 @@ function onHover(info) {
 async function detailFor(idx) {
   const sid = idx >> META.detailShift;
   if (!detailCache.has(sid)) {
-    detailCache.set(sid, fetch(`data/details/d${sid}.json`).then(r => r.json()));
+    detailCache.set(sid, fetch(`data/details/d${sid}.json${V}`).then(r => r.json()));
   }
   const rows = await detailCache.get(sid);
   const row = rows[idx - (sid << META.detailShift)];
@@ -432,7 +433,7 @@ async function detailFor(idx) {
 async function indicesForBBL(bbl) {
   const sid = Number(bbl) % META.bblShards;
   if (!bblCache.has(sid)) {
-    bblCache.set(sid, fetch(`data/bbl/b${sid}.json`).then(r => r.json()));
+    bblCache.set(sid, fetch(`data/bbl/b${sid}.json${V}`).then(r => r.json()));
   }
   const m = await bblCache.get(sid);
   const v = m[String(bbl)];

@@ -15,7 +15,7 @@ Outputs (data/):
   zips.geojson         simplified ZCTA polygons for the NYC ZIPs we have data for
   neighborhoods.json   parent / detailed neighbourhood shares
 """
-import csv, json, math, os, sys, collections
+import csv, json, math, os, sys, time, collections
 
 csv.field_size_limit(1 << 30)
 
@@ -306,6 +306,9 @@ def main():
             counts["bsmtExt"] += 1
 
     meta = {
+        # bumped on every rebuild; the page appends it to every data URL so the
+        # shards can be cached hard without going stale against a new points.bin
+        "build": time.strftime("%Y%m%d%H%M%S"),
         "total": len(ordered), "mapped": n, "lots": lot_counts["total"],
         "lotsAnyExt": lot_counts["anyExt"],
         "bbox": [lon0, lat0, lon1, lat1],
