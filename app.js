@@ -130,8 +130,6 @@ const detailCache = new Map(), bblCache = new Map();
     step(100, 'Ready');
     setTimeout(() => $('#boot').classList.add('gone'), 260);
     setTimeout(() => $('#boot').remove(), 900);
-
-    restoreFromHash();
   } catch (err) {
     console.error(err);
     $('#boot-msg').innerHTML =
@@ -319,7 +317,8 @@ function buildMap() {
     overlay = new deck.MapboxOverlay({ interleaved: false, layers: [] });
     map.addControl(overlay);
     drawLayers();
-    frameCity({ duration: 0 });
+    // A shared link carries its own destination; don't stomp on it with the city fit.
+    if (hashBBL()) restoreFromHash(); else frameCity({ duration: 0 });
 
     map.on('click', e => {
       if (view !== 'buildings') return;
@@ -865,9 +864,11 @@ function buildSearch() {
 
 /* ── deep link ────────────────────────────────────────── */
 
+const hashBBL = () => (/[#&]b=(\d{10})/.exec(location.hash) || [])[1] || null;
+
 async function restoreFromHash() {
-  const m = /[#&]b=(\d{10})/.exec(location.hash);
-  if (!m) return;
-  const idxs = await indicesForBBL(m[1]);
+  const bbl = hashBBL();
+  if (!bbl) return;
+  const idxs = await indicesForBBL(bbl);
   if (idxs.length) selectIndex(idxs.find(i => i < N) ?? idxs[0]);
 }
