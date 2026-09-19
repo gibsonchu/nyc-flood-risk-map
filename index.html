@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>NYC Flood Risk Map — every building, three storms</title>
+<meta name="description" content="Search any New York City address to see whether it sits in a stormwater or coastal flood zone. 908,000 buildings mapped against the city's Extreme, Moderate and 2050 sea-level-rise flood models.">
+<meta name="theme-color" content="#080C12">
+<meta property="og:title" content="NYC Flood Risk Map">
+<meta property="og:description" content="Search any New York City address to see its stormwater and coastal flood risk. 908,000 buildings, three storm scenarios.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f15'/><path d='M4 20c3-3 5 3 8 0s5 3 8 0 5 3 8 0' stroke='%2349B9D6' stroke-width='2.6' fill='none' stroke-linecap='round'/><circle cx='16' cy='10' r='3.2' fill='%23E4553F'/></svg>">
+</head>
+<body>
+
+<div id="map"></div>
+
+<!-- ── boot ─────────────────────────────────────────────── -->
+<div id="boot">
+  <div class="boot-inner">
+    <div class="boot-mark"><i></i><i></i><i></i></div>
+    <h2>NYC Flood Risk Map</h2>
+    <div class="boot-bar"><i id="boot-fill"></i></div>
+    <p id="boot-msg">Loading 908,000 buildings…</p>
+  </div>
+</div>
+
+<!-- ── left rail ────────────────────────────────────────── -->
+<aside id="rail">
+  <header class="rail-head">
+    <div class="wordmark">
+      <span class="wm-badge" aria-hidden="true">
+        <svg viewBox="0 0 32 32"><path d="M3 21c3.2-3.4 5.3 3.4 8.5 0s5.3 3.4 8.5 0 5.3 3.4 8.5 0" stroke="#49B9D6" stroke-width="2.6" fill="none" stroke-linecap="round"/><circle cx="16" cy="9.5" r="3.4" fill="#E4553F"/></svg>
+      </span>
+      <div>
+        <h1>NYC Flood Risk Map</h1>
+        <p>908,000 buildings · 3 storm scenarios</p>
+      </div>
+    </div>
+    <button id="rail-toggle" class="icon-btn" title="Hide panel" aria-label="Hide panel">
+      <svg viewBox="0 0 16 16"><path d="M10 3.5 5.5 8l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </header>
+
+  <!-- search -->
+  <section class="rail-sec" id="sec-search">
+    <label class="lbl" for="q">Check an address</label>
+    <div class="search-wrap">
+      <svg class="search-ico" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="m10.6 10.6 3 3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      <input id="q" type="text" autocomplete="off" spellcheck="false"
+             placeholder="e.g. 1520 Sheepshead Bay Road">
+      <button id="q-clear" class="q-clear" hidden aria-label="Clear">×</button>
+    </div>
+    <ul id="q-list" class="q-list" hidden></ul>
+    <p id="q-hint" class="hint"></p>
+  </section>
+
+  <!-- result card -->
+  <section id="card" class="rail-sec card" hidden></section>
+
+  <!-- scenario -->
+  <section class="rail-sec">
+    <div class="sec-head">
+      <span class="lbl">Storm scenario</span>
+      <button class="link-btn" id="open-method">What are these?</button>
+    </div>
+    <div class="seg" id="scenario" role="radiogroup" aria-label="Storm scenario"></div>
+    <p id="scenario-note" class="note"></p>
+  </section>
+
+  <!-- legend -->
+  <section class="rail-sec">
+    <span class="lbl">Legend</span>
+    <ul class="legend" id="legend"></ul>
+    <label class="switch" id="coastal-row">
+      <input type="checkbox" id="coastal-tog">
+      <span class="sw"></span>
+      <span class="sw-txt">FEMA coastal flood zone<em>1% annual chance · storm surge</em></span>
+    </label>
+  </section>
+
+  <!-- filters -->
+  <section class="rail-sec" id="sec-filters">
+    <div class="sec-head">
+      <span class="lbl">Narrow it down</span>
+      <button class="link-btn" id="reset-filters" hidden>Reset</button>
+    </div>
+    <div class="chips" id="use-chips"></div>
+    <label class="switch">
+      <input type="checkbox" id="bsmt-tog">
+      <span class="sw"></span>
+      <span class="sw-txt">Below-grade basements only<em>Where Ida's deaths happened</em></span>
+    </label>
+    <p id="filter-count" class="note"></p>
+    <p id="zips-note">Filters and the coastal overlay apply to the building view.</p>
+  </section>
+
+  <!-- neighbourhood ranking -->
+  <section class="rail-sec">
+    <div class="sec-head">
+      <span class="lbl">Most exposed neighborhoods</span>
+    </div>
+    <ol class="rank" id="rank"></ol>
+  </section>
+
+  <footer class="rail-foot">
+    <button class="link-btn" id="open-method-2">Sources &amp; method</button>
+    <span>·</span>
+    <a class="link-btn" href="https://www.nyc.gov/site/dep/environment/nyc-stormwater-resiliency-plan.page" target="_blank" rel="noopener">NYC Stormwater Plan</a>
+  </footer>
+</aside>
+
+<button id="rail-open" class="icon-btn floating" hidden aria-label="Show panel">
+  <svg viewBox="0 0 16 16"><path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+</button>
+
+<!-- ── map chrome ───────────────────────────────────────── -->
+<div id="topbar">
+  <div class="view-seg" id="viewmode" role="radiogroup" aria-label="Map view">
+    <button data-v="buildings" class="on" role="radio" aria-checked="true">Buildings</button>
+    <button data-v="zips" role="radio" aria-checked="false">Neighborhoods</button>
+  </div>
+  <div id="headline" class="headline"></div>
+</div>
+
+<div id="tooltip" class="tooltip" hidden></div>
+
+<div id="scalebox">
+  <div id="zip-readout" class="zip-readout" hidden></div>
+</div>
+
+<!-- ── methodology ──────────────────────────────────────── -->
+<div id="method" class="modal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="method-title">
+    <button class="modal-x" id="close-method" aria-label="Close">×</button>
+    <h2 id="method-title">What this map shows</h2>
+
+    <p>Every dot is a building. Its color says what the city's flood models predict
+       for that spot under the storm scenario you pick on the left.</p>
+
+    <h3>The three scenarios</h3>
+    <p>New York's Stormwater Flood Maps model what happens when rain falls faster than the
+       sewers can drain it. Each map pairs a rainfall intensity with a sea level.</p>
+    <table class="meth-table">
+      <tr><th>Extreme storm</th>
+          <td>3.66 in/hr rainfall with the 2080 high-tide projection
+              (58 in of sea level rise, NPCC 90th percentile).
+              Hurricane Ida dropped 3.15 in/hr on Central Park in September 2021.</td></tr>
+      <tr><th>Moderate + 2050 seas</th>
+          <td>2.13 in/hr rainfall with the 2050 high-tide projection.</td></tr>
+      <tr><th>Moderate, today</th>
+          <td>2.13 in/hr rainfall at current sea levels — roughly a storm that arrives
+              every few years now.</td></tr>
+    </table>
+
+    <h3>The categories</h3>
+    <ul class="meth-list">
+      <li><b>Nuisance flooding</b> — ponding of 4 inches to 1 foot. Enough to flood a
+          below-grade apartment, stall a car, or block a doorway.</li>
+      <li><b>Deep and contiguous flooding</b> — 1 foot or more, connected across at least
+          a quarter-acre. This is the dangerous category.</li>
+      <li><b>Future high tide</b> — not rain. Land that sits below the projected daily high
+          tide in 2080 (or 2050), from the city's Flood Hazard Mapper. Chronic, not episodic.</li>
+    </ul>
+    <p class="meth-fine">The city's models only map flooding of at least 4 inches covering
+       at least a quarter-acre, so small puddles and single-basement flooding are invisible
+       to them. Nothing here accounts for private drainage, a clogged catch basin, or the
+       condition of your building.</p>
+
+    <h3>Coastal zones</h3>
+    <p>The violet halo marks tax lots inside FEMA's 1%-annual-chance flood zone
+       (the preliminary 2015 FIRM). That's storm surge from a hurricane or nor'easter —
+       a different hazard from rainfall, and the one that drives flood-insurance
+       requirements. Lots in a <b>VE</b> zone also face breaking waves.</p>
+
+    <h3>Basements</h3>
+    <p>Eleven of the thirteen people who died in New York during Ida drowned in basement
+       apartments. PLUTO records a basement grade for most one-to-three-family homes, so
+       the map can isolate buildings with a <b>below-grade</b> basement sitting inside a
+       flood footprint — <b id="m-bsmt"></b> of them citywide under the extreme storm.
+       The field is unverified for many commercial and large residential buildings, so
+       treat "no basement" as "not recorded" rather than proof.</p>
+
+    <h3>Where the numbers come from</h3>
+    <ul class="meth-list">
+      <li><b>NYC DEP / Mayor's Office of Climate &amp; Environmental Justice</b> —
+          NYC Stormwater Flood Maps (Extreme 3.66 in/hr + 2080 SLR;
+          Moderate 2.13 in/hr + 2050 SLR; Moderate 2.13 in/hr, current seas).</li>
+      <li><b>NYC Department of City Planning</b> — MapPLUTO 24v4.1 for tax-lot footprints,
+          land use, basement grade and address.</li>
+      <li><b>NYC DOB</b> — Building Elevation and Subgrade (BES) for building coordinates.</li>
+      <li><b>FEMA</b> — Preliminary Flood Insurance Rate Map database, 30 January 2015.</li>
+      <li><b>US Census</b> — ZCTA boundaries. <b>Geocoding</b> by NYC Planning Labs GeoSearch.</li>
+    </ul>
+    <p class="meth-fine">Spatial overlay of flood footprints onto tax lots by Mythili
+       Vinnakota and Anna Weber. A lot is flagged for a category if any part of it
+       intersects that category's footprint, so a large lot can be flagged when the
+       building on it is not. Neighborhood and ZIP shares are computed over
+       <b>tax lots</b>; the dots on the map are <b>buildings</b>, and a single lot can
+       carry many.</p>
+    <p class="meth-fine"><b>This is not a flood-insurance determination and not a
+       substitute for one.</b> It is a research map built from citywide models. For an
+       official determination, use FEMA's Flood Map Service Center; for what to do about
+       it, see <a href="https://www.floodhelpny.org/" target="_blank" rel="noopener">FloodHelpNY</a>.</p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/deck.gl@9.0.38/dist.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

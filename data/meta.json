@@ -1,0 +1,59 @@
+{
+ "total": 907955,
+ "mapped": 859351,
+ "lots": 856809,
+ "lotsAnyExt": 248877,
+ "bbox": [
+  -74.25526629,
+  40.49847808,
+  -73.70036863,
+  40.91492333
+ ],
+ "detailShift": 12,
+ "bblShards": 256,
+ "counts": {
+  "ext3": 30689,
+  "slr3": 12130,
+  "coastal": 74924,
+  "coastalV": 5603,
+  "anyExt": 281552,
+  "anySlr": 61279,
+  "ext1": 230661,
+  "mod1": 44173,
+  "slr1": 47650,
+  "anyMod": 47325,
+  "ext2": 150453,
+  "mod2": 22966,
+  "slr2": 24990,
+  "bsmtExt": 140032
+ },
+ "boros": {
+  "MN": "Manhattan",
+  "BX": "Bronx",
+  "BK": "Brooklyn",
+  "QN": "Queens",
+  "SI": "Staten Island"
+ },
+ "bsmt": {
+  "0": "No basement",
+  "1": "Full basement, above grade",
+  "2": "Full basement, below grade",
+  "3": "Partial basement, above grade",
+  "4": "Partial basement, below grade",
+  "5": "Unknown"
+ },
+ "landuse": {
+  "1": "One & two family",
+  "2": "Multi-family walk-up",
+  "3": "Multi-family elevator",
+  "4": "Mixed residential & commercial",
+  "5": "Commercial & office",
+  "6": "Industrial & manufacturing",
+  "7": "Transportation & utility",
+  "8": "Public facilities & institutions",
+  "9": "Open space & recreation",
+  "10": "Parking",
+  "11": "Vacant land",
+  "0": "Unknown"
+ }
+}
